@@ -1,3 +1,5 @@
+const BLACKLIST = []
+
 class Stats {
 
   constructor(dispatch, command) {
@@ -18,6 +20,7 @@ class Stats {
     this.hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, {order: 100}, event => {
       if (!this.lootid) this.lootid = event.sysmsg.split('\u000b')[0]
       let {item, amount} = event
+      if (BLACKLIST.includes(item)) return false
       this.loot[item] = amount + (this.loot[item] || 0)
       return false
     })
