@@ -96,6 +96,7 @@ module.exports = function OpenBox(dispatch) {
     })
 
     hook('S_GACHA_END', 1, () => {
+      clearTimeout(timer)
       if (hasMore) timer = setTimeout(useItem, delay(), itemid)
       return false
     })
