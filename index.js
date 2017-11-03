@@ -1,98 +1,137 @@
-const Command = require('command');
+const Command = require('command'),
+      {sysmsg} = require('tera-data-parser')
 
-module.exports = function boxOpener(dispatch){
-	const command = Command(dispatch)
-	
-	let	cid = null,
-		enabled = false,
-		location = null,
-		timer = null,
-		scanning = false;
-		boxId = 166901, // MWA box as default.
-		inventory = null;
-		
-	command.add('getbox', () => {
-		scanning = true;
-			command.message('Please open the box you wish to set.');
-	});
-	
-	command.add('openbox', () => {
-		if(!enabled){
-			command.message('Opening selected box, use the same command to stop.');
-			timer = setInterval(openBox,200)
-		}
-	});
-	
-	command.add('stopbox', () => {
-		clearInterval(timer)
-		enabled = false
-		inventory = null
-		command.message('Box opener stopped.')
-	});
-	
-	dispatch.hook('S_LOGIN', 1, event =>{cid = event.cid});
-	dispatch.hook('C_PLAYER_LOCATION', 1, event =>{location = event});
-	
-	dispatch.hook('S_INVEN', 5, event =>{
-		if(!enabled) return
+const DELAY = 300,
+      LOOTCODE = 'SMT_LOOTED_ITEM',
+      STOPCODES = [
+        'SMT_USE_ITEM_NO_EXIST', 'SMT_ITEM_MIX_NEED_METERIAL',
+        'SMT_CANT_CONVERT_NOW', 'SMT_CANT_USE_ITEM_MISS_AREA', 'SMT_GACHA_CANCEL'
+      ]
 
-		if(event.first) inventory = []
-		else if(!inventory) return
+module.exports = function OpenBox(dispatch) {
+  const command = Command(dispatch)
 
-		for(let item of event.items) inventory.push(item)
+  let enabled = false,
+      hasMore = false,
+      gotLoot = false,
+      hooks = [],
+      inventory,
+      gachaid,
+      itemid,
+      timer,
+      cid,
+      loc
 
-		if(!event.more) {
-			let box = false
-		for(let item of inventory) {
-				if(item.slot < 40) continue 
-				if(item.item == boxId) box = true
-		}
-		if(!box) stop()
+  command.add(['openbox', 'cook'], () => {
+    if (enabled = !enabled) load()
+    else stop()
+  })
 
-			inventory = null
-		}
-	});
-	
-	dispatch.hook('C_USE_ITEM', 1, event =>{
-		if(!scanning) return
-	
-		if(scanning){
-			boxId = event.item;
-			command.message('Box set to: '+boxId+' If this is not a box try again.');
-			scanning = false;
-		}
-	});
-	
-	function openBox() {
-		dispatch.toServer('C_USE_ITEM', 1, {
-			ownerId: cid,
-			item: boxId,
-			id: 0,
-			unk1: 0,
-			unk2: 0,
-			unk3: 0,
-			unk4: 1,
-			unk5: 0,
-			unk6: 0,
-			unk7: 0,
-			x: location.x1,
-			y: location.y1,
-			z: location.z1,
-			w: location.w,
-			unk8: 0,
-			unk9: 0,
-			unk10: 0,
-			unk11: 1
-		})
-		
-		dispatch.toServer('C_GACHA_TRY', 1,{
-			id:385851
-		})
-	}
-	function stop() {
-		clearInterval(timer)
-		enabled = false
-		inventory = null
-		command.message('Box opener stopped.')
-		}
+  dispatch.hook('S_LOGIN', 1, event => cid = event.cid)
+  dispatch.hook('C_PLAYER_LOCATION', 1, event => {
+    loc = event
+    if (timer) pause()
+  })
+
+  function stop() {
+    reset()
+    unload()
+    enabled = false
+    send('Box opener stopped.')
+  }
+
+  function pause() {
+    reset()
+    send('Box opener paused.')
+  }
+
+  function reset() {
+    clearTimeout(timer)
+    timer = null
+    itemid = null
+    gachaid = null
+    hasMore = false
+    gotLoot = false
+  }
+
+  function load() {
+    reset()
+    send('Box opener started.')
+
+    // I could probably scrap this hook if I don't care about sending an extra packet
+    hook('S_INVEN', 5, event => {
+      if (!itemid || !gotLoot) return
+      if (event.first) inventory = []
+      else if (!inventory) return
+      for (let item of event.items) inventory.push(item)
+      if (!event.more) {
+        hasMore = false
+        for (let item of inventory) {
+          if (item.slot < 40) continue
+          if (item.item === itemid) {hasMore = true; break}
+        }
+        if (gotLoot && itemid && hasMore) {
+          clearTimeout(timer)
+          gotLoot = false
+          if (!gachaid) timer = setTimeout(useItem, delay())
+        }
+        else stop()
+        inventory = null
+      }
+    })
+
+    hook('C_USE_ITEM', 1, event => itemid = event.item)
+
+    hook('C_GACHA_TRY', 1, () => false)
+
+    hook('S_GACHA_START', 1, event => {
+      gachaid = event.id
+      dispatch.toServer('C_GACHA_TRY', 1, {id: event.id})
+      return false
+    })
+
+    hook('S_GACHA_END', 1, () => {
+      if (hasMore) timer = setTimeout(useItem, delay())
+      return false
+    })
+
+    hook('C_RETURN_TO_LOBBY', 1, () => false)
+
+    hook('S_SYSTEM_MESSAGE', 1, event => {
+      if (STOPCODES.includes(parse(event.message))) stop()
+    })
+
+    hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, event => {
+      if (parse(event.sysmsg) === LOOTCODE && itemid) gotLoot = true
+    })
+  }
+
+  function unload() {
+    if (hooks.length) {
+      for (let h of hooks) dispatch.unhook(h)
+      hooks = []
+    }
+  }
+
+  function useItem() {
+    dispatch.toServer('C_USE_ITEM', 1, {
+      ownerId: cid, item: itemid,
+      id: 0, unk1: 0, unk2: 0, unk3: 0,
+      unk4: 1, unk5: 0, unk6: 0, unk7: 0,
+      x: loc.x1, y: loc.y1, z: loc.z1, w: loc.w,
+      unk8: 0, unk9: 0, unk10: 0,  unk11: 1
+    })
+  }
+
+  function send(msg) {command.message(msg, 'OpenBox')}
+
+  function hook() {hooks.push(dispatch.hook(...arguments))}
+
+  function delay() {return Math.floor(Math.random() * 100) + DELAY}
+
+  function parse(msg) {
+    let map = sysmsg.maps.get(dispatch.base.protocolVersion).code,
+        id = parseInt(msg.split('\u000B')[0].substr(1), 10)
+    return map.get(id)
+  }
 }
