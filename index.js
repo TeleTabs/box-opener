@@ -107,6 +107,7 @@ module.exports = function OpenBox(dispatch) {
       if (STOPCODES.includes(parse(event.message))) stop()
     })
 
+    // Redundant sysmsg check is redundant
     hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, event => {
       if (parse(event.sysmsg) === LOOTCODE && itemid) gotLoot = true
     })
