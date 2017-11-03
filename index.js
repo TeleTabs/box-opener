@@ -60,9 +60,9 @@ module.exports = function OpenBox(dispatch) {
       if (!itemid || !gotLoot) return
       if (event.first) inventory = []
       else if (!inventory) return
-      gotLoot = false
       for (let item of event.items) inventory.push(item)
       if (!event.more) {
+        gotLoot = false
         let hasMore = false
         for (let item of inventory) {
           if (item.slot < 40) continue
@@ -104,10 +104,8 @@ module.exports = function OpenBox(dispatch) {
   }
 
   function unload() {
-    if (hooks.length) {
-      for (let h of hooks) dispatch.unhook(h)
-      hooks = []
-    }
+    for (let h of hooks) dispatch.unhook(h)
+    hooks = []
   }
 
   function useItem(id) {
