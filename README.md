@@ -1,5 +1,5 @@
 # Box-opener
-Opens most boxes. Specifically, it'll reuse any item that produces an item in your inventory, thus it works with Rootstock recipes as well. Forked from Fruit's [Box-opener](https://github.com/soler91/box-opener). Load/unload and inventory check based off [Pinkpi's](https://github.com/pinkipi) rootbeer script.
+Opens most boxes. Specifically, it'll reuse any item that produces an item in your inventory, thus it works with Rootstock recipes as well. Forked from Fruit's [Box-opener](https://github.com/soler91/box-opener). Load/unload pattern based off [Pinkpi's](https://github.com/pinkipi) rootbeer script.
 
 ### Dependencies
 Uses Pinkie Pie's [command](https://github.com/pinkipi/command) module. If you don't have it, just get it, seriously.
