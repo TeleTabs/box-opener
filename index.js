@@ -1,8 +1,8 @@
 const Command = require('command'),
-      {sysmsg} = require('tera-data-parser')
+      {sysmsg} = require('tera-data-parser'),
+      Stats = require('./stats')
 
-const DELAY = 300,
-      LOOTCODE = 'SMT_LOOTED_ITEM',
+const DELAY = 200,
       STOPCODES = [
         'SMT_USE_ITEM_NO_EXIST', 'SMT_ITEM_MIX_NEED_METERIAL',
         'SMT_CANT_CONVERT_NOW', 'SMT_CANT_USE_ITEM_MISS_AREA', 'SMT_GACHA_CANCEL'
@@ -10,7 +10,8 @@ const DELAY = 300,
 
 module.exports = function OpenBox(dispatch) {
   let msgmap
-  const command = Command(dispatch)
+  const command = Command(dispatch),
+        stats = Stats(dispatch, command)
 
   let enabled = false,
       gotLoot = false,
@@ -38,6 +39,7 @@ module.exports = function OpenBox(dispatch) {
 
   function stop() {
     reset()
+    stats.stop()
     unload()
     enabled = false
     send('Box opener stopped.')
@@ -53,6 +55,7 @@ module.exports = function OpenBox(dispatch) {
 
   function load() {
     reset()
+    stats.start()
     send('Box opener started.')
 
     // I could probably scrap this hook if I don't care about sending an extra packet
@@ -99,8 +102,7 @@ module.exports = function OpenBox(dispatch) {
       if (STOPCODES.includes(parse(event.message))) stop()
     })
 
-    // Redundant sysmsg check is redundant
-    hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, event => gotLoot = (parse(event.sysmsg) === LOOTCODE) && itemid)
+    hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, {order: -100}, event => gotLoot = (itemid !== null))
   }
 
   function unload() {
