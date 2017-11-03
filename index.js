@@ -78,7 +78,7 @@ module.exports = function OpenBox(dispatch) {
         if (gotLoot && itemid && hasMore) {
           clearTimeout(timer)
           gotLoot = false
-          if (!gachaid) timer = setTimeout(useItem, delay())
+          if (!gachaid) timer = setTimeout(useItem, delay(), itemid)
         }
         else stop()
         inventory = null
@@ -96,7 +96,7 @@ module.exports = function OpenBox(dispatch) {
     })
 
     hook('S_GACHA_END', 1, () => {
-      if (hasMore) timer = setTimeout(useItem, delay())
+      if (hasMore) timer = setTimeout(useItem, delay(), itemid)
       return false
     })
 
@@ -118,9 +118,10 @@ module.exports = function OpenBox(dispatch) {
     }
   }
 
-  function useItem() {
+  function useItem(id) {
+    if (!id) return
     dispatch.toServer('C_USE_ITEM', 1, {
-      ownerId: cid, item: itemid,
+      ownerId: cid, item: id,
       id: 0, unk1: 0, unk2: 0, unk3: 0,
       unk4: 1, unk5: 0, unk6: 0, unk7: 0,
       x: loc.x1, y: loc.y1, z: loc.z1, w: loc.w,
