@@ -11,7 +11,8 @@ const DELAY = 300,
 module.exports = function OpenBox(dispatch) {
   const command = Command(dispatch)
 
-  let enabled = false,
+  let msgmap,
+      enabled = false,
       hasMore = false,
       gotLoot = false,
       hooks = [],
@@ -21,6 +22,10 @@ module.exports = function OpenBox(dispatch) {
       timer,
       cid,
       loc
+
+  dispatch.hookOnce('S_CHECK_VERSION', 1, () =>
+    msgmap = sysmsg.maps.get(dispatch.base.protocolVersion).code
+  )
 
   command.add(['openbox', 'cook'], () => {
     if (enabled = !enabled) load()
@@ -130,8 +135,6 @@ module.exports = function OpenBox(dispatch) {
   function delay() {return Math.floor(Math.random() * 100) + DELAY}
 
   function parse(msg) {
-    let map = sysmsg.maps.get(dispatch.base.protocolVersion).code,
-        id = parseInt(msg.split('\u000B')[0].substr(1), 10)
-    return map.get(id)
+    return msgmap.get(parseInt(msg.split('\u000B')[0].substr(1), 10))
   }
 }
