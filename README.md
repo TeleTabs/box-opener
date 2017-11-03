@@ -13,3 +13,5 @@ Running out of boxes or ingredients (or using a recipe in the wrong area) stops 
 
 ### Issues
 Using an item from the shortcut bar without actually having it may send a C_USE_ITEM or C_GACHA_TRY packet once. Just don't do it.
+
+There's a lot of things that can interfere with the module, mainly looting or spam-opening your inventory, so just sit still.
