@@ -30,7 +30,10 @@ module.exports = function OpenBox(dispatch) {
     else stop()
   })
 
-  command.add('boxdelay', (ms) => {minDelay = parseInt(ms, 10)})
+  command.add('boxdelay', (ms) => {
+    if (!isNaN(ms)) minDelay = parseInt(ms, 10)
+    send(minDelay? `Delay set to ${minDelay} ms.` : 'No delay.')
+  })
 
   dispatch.hookOnce('S_CHECK_VERSION', 1, () => msgmap = sysmsg.maps.get(dispatch.base.protocolVersion))
   dispatch.hook('S_LOGIN', 2, event => ({cid, name} = event))
