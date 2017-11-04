@@ -63,7 +63,7 @@ module.exports = function OpenBox(dispatch) {
     reset()
     send('Box opener started.')
 
-    // Despite what the README says, I did actually hook the damn S_INVEN
+    // This hook doesn't save you from triggering gacha from shortcut bar, even if you don't have the box
     hook('S_INVEN', 5, event => {
       if (!itemid || !gotLoot) return
       if (event.first) inventory = []
