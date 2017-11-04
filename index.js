@@ -23,7 +23,7 @@ module.exports = function OpenBox(dispatch) {
       cid,
       loc
 
-  let minDelay = 200
+  let minDelay = 250
 
   command.add(['openbox', 'cook'], () => {
     if (enabled = !enabled) load()
@@ -78,7 +78,7 @@ module.exports = function OpenBox(dispatch) {
         }
         if (hasMore) {
           clearTimeout(timer)
-          if (!gacha) timer = setTimeout(useItem, delay(), itemid)
+          if (!gacha) timer = setTimeout(useItem, minDelay, itemid)
         }
         else stop()
         inventory = null
@@ -97,7 +97,7 @@ module.exports = function OpenBox(dispatch) {
 
     hook('S_GACHA_END', 1, () => {
       clearTimeout(timer)
-      timer = setTimeout(useItem, delay(), itemid)
+      timer = setTimeout(useItem, minDelay, itemid)
       return false
     })
 
@@ -170,8 +170,6 @@ module.exports = function OpenBox(dispatch) {
   function send(msg) {command.message(msg, 'OpenBox')}
 
   function hook() {hooks.push(dispatch.hook(...arguments))}
-
-  function delay() {return Math.floor(Math.random() * 100) + minDelay}
 
   function parse(msg) {
     return msgmap.code.get(parseInt(msg.split('\u000B')[0].substr(1), 10))
