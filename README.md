@@ -1,5 +1,5 @@
 # Box-opener
-Yet another pointless box-opener that opens most boxes. It'll reuse any item that produces an item in your inventory, so it works with Rootstock recipes as well. It'll suppress the loot messages till the very end and give you a total amounts for each item once it stops.
+Yet another pointless box-opener that opens most boxes. It'll reuse any item that produces an item in your inventory, so it works with Rootstock recipes as well. It'll suppress the loot messages (and the RNG window if it's an RNG box) till the very end and give you a total amounts for each item once it stops.
 
 Forked from Fruit's [Box-opener](https://github.com/soler91/box-opener). Load/unload pattern based off [Pinkpi's](https://github.com/pinkipi) rootbeer script.
 
