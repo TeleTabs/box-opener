@@ -12,4 +12,4 @@ Uses Pinkie Pie's [command](https://github.com/pinkipi/command) module. Just get
 ### Issues
 Some RNG boxes still trigger S_GACHA_START without triggering S_INVEN, even if you don't actually have them, so don't use the shortcut bar if you don't actually have the box.
 
-It hooks does and has always hooked S_INVEN, so spamming your inventory is probably a dumb idea.
+It does and has always hooked S_INVEN, so spamming your inventory is probably a dumb idea.
