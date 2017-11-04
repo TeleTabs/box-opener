@@ -1,35 +1,39 @@
 const Command = require('command'),
-      {sysmsg} = require('tera-data-parser'),
-      Stats = require('./stats')
+      {sysmsg} = require('tera-data-parser')
 
-const DELAY = 200,
-      STOPCODES = [
+const STOPCODES = [
         'SMT_USE_ITEM_NO_EXIST', 'SMT_ITEM_MIX_NEED_METERIAL',
         'SMT_CANT_CONVERT_NOW', 'SMT_CANT_USE_ITEM_MISS_AREA', 'SMT_GACHA_CANCEL'
-      ]
+      ],
+      BLACKLIST = []  // Stuff you don't need counted
 
 module.exports = function OpenBox(dispatch) {
   let msgmap
-  const command = Command(dispatch),
-        stats = Stats(dispatch, command)
+  const command = Command(dispatch)
 
   let enabled = false,
       gotLoot = false,
       gacha = false,
       hooks = [],
+      loot = {},
       inventory,
       itemid,
       timer,
+      name,
       cid,
       loc
+
+  let minDelay = 200
 
   command.add(['openbox', 'cook'], () => {
     if (enabled = !enabled) load()
     else stop()
   })
 
-  dispatch.hookOnce('S_CHECK_VERSION', 1, () => msgmap = sysmsg.maps.get(dispatch.base.protocolVersion).code)
-  dispatch.hook('S_LOGIN', 1, event => cid = event.cid)
+  command.add('boxdelay', (ms) => {minDelay = parseInt(ms, 10)})
+
+  dispatch.hookOnce('S_CHECK_VERSION', 1, () => msgmap = sysmsg.maps.get(dispatch.base.protocolVersion))
+  dispatch.hook('S_LOGIN', 2, event => ({cid, name} = event))
   dispatch.hook('C_PLAYER_LOCATION', 1, event => {
     loc = event
     if (timer) pause()
@@ -39,10 +43,12 @@ module.exports = function OpenBox(dispatch) {
 
   function stop() {
     reset()
-    stats.stop()
     unload()
     enabled = false
     send('Box opener stopped.')
+    // Boxes over time is a dumb stat, so let's do something just as dumb: loot totals
+    for(let item in loot) lootsysmsg(item, loot[item])
+    loot = {}
   }
 
   function reset() {
@@ -55,10 +61,9 @@ module.exports = function OpenBox(dispatch) {
 
   function load() {
     reset()
-    stats.start()
     send('Box opener started.')
 
-    // I could probably scrap this hook if I don't care about sending an extra packet
+    // Despite what the README says, I did actually hook the damn S_INVEN
     hook('S_INVEN', 5, event => {
       if (!itemid || !gotLoot) return
       if (event.first) inventory = []
@@ -102,7 +107,13 @@ module.exports = function OpenBox(dispatch) {
       if (STOPCODES.includes(parse(event.message))) stop()
     })
 
-    hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, {order: -100}, event => gotLoot = (itemid !== null))
+    hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, {order: -100}, event => {
+      gotLoot = itemid !== null
+      let {item, amount} = event
+      if (BLACKLIST.includes(item)) return false
+      loot[item] = amount + (loot[item] || 0)
+      return false
+    })
   }
 
   function unload() {
@@ -110,13 +121,49 @@ module.exports = function OpenBox(dispatch) {
     hooks = []
   }
 
+  // Too many fucking unk's
   function useItem(id) {
     if (id) dispatch.toServer('C_USE_ITEM', 1, {
-      ownerId: cid, item: id,
-      id: 0, unk1: 0, unk2: 0, unk3: 0,
-      unk4: 1, unk5: 0, unk6: 0, unk7: 0,
-      x: loc.x1, y: loc.y1, z: loc.z1, w: loc.w,
-      unk8: 0, unk9: 0, unk10: 0,  unk11: 1
+      ownerId: cid,
+      item: id,
+      id: 0,
+      unk1: 0,
+      unk2: 0,
+      unk3: 0,
+      unk4: 1,
+      unk5: 0,
+      unk6: 0,
+      unk7: 0,
+      x: loc.x1,
+      y: loc.y1,
+      z: loc.z1,
+      w: loc.w,
+      unk8: 0,
+      unk9: 0,
+      unk10: 0,
+      unk11: 1
+    })
+  }
+
+  // Not as bad, but still too many fucking unk's
+  function lootsysmsg(item, amt) {
+    let msg = [
+      '@' + msgmap.name.get('SMT_LOOTED_ITEM'),
+      'UserName', name,
+      'ItemAmount', amt,
+      'ItemName', '@item:' + item
+    ]
+    dispatch.toClient('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, {
+      item: item,
+      unk1: 0,
+      amount: amt,
+      unk2: 0,
+      unk3: 0,
+      unk4: 0,
+      unk5: 0,
+      unk6: 0,
+      unk7: 0,
+      sysmsg: msg.join('\u000b')
     })
   }
 
@@ -124,9 +171,9 @@ module.exports = function OpenBox(dispatch) {
 
   function hook() {hooks.push(dispatch.hook(...arguments))}
 
-  function delay() {return Math.floor(Math.random() * 100) + DELAY}
+  function delay() {return Math.floor(Math.random() * 100) + minDelay}
 
   function parse(msg) {
-    return msgmap.get(parseInt(msg.split('\u000B')[0].substr(1), 10))
+    return msgmap.code.get(parseInt(msg.split('\u000B')[0].substr(1), 10))
   }
 }
