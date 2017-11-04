@@ -121,7 +121,7 @@ module.exports = function OpenBox(dispatch) {
     hooks = []
   }
 
-  // Too many fucking unk's
+  // Why is this packet so long? It's like Bern's walls of variables
   function useItem(id) {
     if (id) dispatch.toServer('C_USE_ITEM', 1, {
       ownerId: cid,
@@ -145,7 +145,7 @@ module.exports = function OpenBox(dispatch) {
     })
   }
 
-  // Not as bad, but still too many fucking unk's
+  // Not as bad, but still, such zeroes
   function lootsysmsg(item, amt) {
     let msg = [
       '@' + msgmap.name.get('SMT_LOOTED_ITEM'),
