@@ -5,34 +5,30 @@ const STOPCODES = [
         'SMT_USE_ITEM_NO_EXIST', 'SMT_ITEM_MIX_NEED_METERIAL',
         'SMT_CANT_CONVERT_NOW', 'SMT_CANT_USE_ITEM_MISS_AREA', 'SMT_GACHA_CANCEL'
       ],
-      BLACKLIST = []  // Stuff you don't need counted
+      // List item IDs for loot you want to ignore
+      BLACKLIST = []
 
 module.exports = function OpenBox(dispatch) {
-  let msgmap
   const command = Command(dispatch)
-
-  let enabled = false,
+  let delay = 200,
+  // Leave these vars alone
+      msgmap, name, cid, loc,
       gotLoot = false,
       gacha = false,
       hooks = [],
       loot = {},
       inventory,
-      itemid,
-      timer,
-      name,
-      cid,
-      loc
+      itemID,
+      timer
 
-  let minDelay = 250
-
-  command.add(['openbox', 'cook'], () => {
-    if (enabled = !enabled) load()
-    else stop()
+  command.add(['box', 'cook'], () => {
+    if (hooks.length) stop()
+    else load()
   })
 
   command.add('boxdelay', (ms) => {
-    if (!isNaN(ms)) minDelay = parseInt(ms, 10)
-    send(minDelay? `Delay set to ${minDelay} ms.` : 'No delay.')
+    if (!isNaN(ms)) delay = parseInt(ms, 10)
+    send(delay? `Delay set to ${delay} ms.` : 'No delay.')
   })
 
   dispatch.hookOnce('S_CHECK_VERSION', 1, () => msgmap = sysmsg.maps.get(dispatch.base.protocolVersion))
@@ -42,33 +38,12 @@ module.exports = function OpenBox(dispatch) {
     if (timer) pause()
   })
 
-  function pause() {reset(); send('Box opener paused.')}
-
-  function stop() {
-    reset()
-    unload()
-    enabled = false
-    send('Box opener stopped.')
-    // Boxes over time is a dumb stat, so let's do something just as dumb: loot totals
-    for(let item in loot) lootsysmsg(item, loot[item])
-    loot = {}
-  }
-
-  function reset() {
-    clearTimeout(timer)
-    timer = null
-    itemid = null
-    gacha = false
-    gotLoot = false
-  }
-
   function load() {
     reset()
-    send('Box opener started.')
+    send('Please use a box/recipe.')
 
-    // This hook doesn't save you from triggering gacha from shortcut bar, even if you don't have the box
     hook('S_INVEN', 5, event => {
-      if (!itemid || !gotLoot) return
+      if (!itemID || !gotLoot) return
       if (event.first) inventory = []
       else if (!inventory) return
       for (let item of event.items) inventory.push(item)
@@ -77,18 +52,18 @@ module.exports = function OpenBox(dispatch) {
         let hasMore = false
         for (let item of inventory) {
           if (item.slot < 40) continue
-          if (item.item === itemid) {hasMore = true; break}
+          if (item.item === itemID) {hasMore = true; break}
         }
         if (hasMore) {
           clearTimeout(timer)
-          if (!gacha) timer = setTimeout(useItem, minDelay, itemid)
+          if (!gacha) timer = setTimeout(useItem, delay, itemID)
         }
         else stop()
         inventory = null
       }
     })
 
-    hook('C_USE_ITEM', 1, event => itemid = event.item)
+    hook('C_USE_ITEM', 1, event => itemID = event.item)
 
     hook('C_GACHA_TRY', 1, () => false)
 
@@ -100,7 +75,7 @@ module.exports = function OpenBox(dispatch) {
 
     hook('S_GACHA_END', 1, () => {
       clearTimeout(timer)
-      timer = setTimeout(useItem, minDelay, itemid)
+      timer = setTimeout(useItem, delay, itemID)
       return false
     })
 
@@ -111,7 +86,7 @@ module.exports = function OpenBox(dispatch) {
     })
 
     hook('S_SYSTEM_MESSAGE_LOOT_ITEM', 1, {order: -100}, event => {
-      gotLoot = itemid !== null
+      gotLoot = itemID !== null
       let {item, amount} = event
       if (BLACKLIST.includes(item)) return false
       loot[item] = amount + (loot[item] || 0)
@@ -119,9 +94,26 @@ module.exports = function OpenBox(dispatch) {
     })
   }
 
-  function unload() {
-    for (let h of hooks) dispatch.unhook(h)
-    hooks = []
+  function reset() {
+    clearTimeout(timer)
+    timer = null
+    itemID = null
+    gacha = false
+    gotLoot = false
+  }
+
+  function pause() {
+    reset()
+    send('Paused. Use a box/recipe to resume.')
+  }
+
+  function stop() {
+    reset()
+    unload()
+    send('Stopped.')
+    // Boxes over time is a dumb stat, so let's do something just as dumb: loot totals
+    for(let item in loot) lootMsg(item, loot[item])
+    loot = {}
   }
 
   // Why is this packet so long? It's like Bern's walls of variables
@@ -149,7 +141,7 @@ module.exports = function OpenBox(dispatch) {
   }
 
   // Not as bad, but still, such zeroes
-  function lootsysmsg(item, amt) {
+  function lootMsg(item, amt) {
     let msg = [
       '@' + msgmap.name.get('SMT_LOOTED_ITEM'),
       'UserName', name,
@@ -172,9 +164,12 @@ module.exports = function OpenBox(dispatch) {
 
   function send(msg) {command.message(msg, 'OpenBox')}
 
+  function parse(msg) {return msgmap.code.get(parseInt(msg.split('\u000B')[0].substr(1), 10))}
+
   function hook() {hooks.push(dispatch.hook(...arguments))}
 
-  function parse(msg) {
-    return msgmap.code.get(parseInt(msg.split('\u000B')[0].substr(1), 10))
+  function unload() {
+    for (let h of hooks) dispatch.unhook(h)
+    hooks = []
   }
 }

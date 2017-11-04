@@ -7,7 +7,7 @@ Forked from Fruit's [Box-opener](https://github.com/soler91/box-opener). Load/un
 Uses Pinkie Pie's [command](https://github.com/pinkipi/command) module. Just get it.
 
 ### Usage
-`!openbox` or `!cook` then use a box or recipe from inventory (not from your shortcut bar). Moving pauses the module, just reuse the box or recipe in that case. Running out of boxes or ingredients (or using a recipe in the wrong area) stops and disables the module.
+`!box` or `!cook` then use a box or recipe from inventory (not from your shortcut bar). Moving pauses the module, just reuse the box or recipe in that case. Running out of boxes or ingredients (or using a recipe in the wrong area) stops and disables the module.
 
 `!boxdelay ms` to change delay (in milliseconds) before using next item/box. Set it to 0 for no delay (setTimeout does actually accept a 0 ms arg, so a 'useDelay' flag seems kinda pointless).
 
