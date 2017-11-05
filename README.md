@@ -12,7 +12,7 @@ Uses Pinkie Pie's [command](https://github.com/pinkipi/command) module. Just get
 `!boxdelay ms` to change delay (in milliseconds) before using next item/box. Set it to 0 for no delay.
 
 ## Stuff
-* Contrary to what some people thought, this module does and has always used `S_INVEN`, I just didn't want to keep the hook active when you're not trying to open boxes. If you were not one of those people and want to complain to me, you seemed to have missed the word "some" on the first line of this bullet point.
+* If I wanted to prevent you from using items you don't have no matter what, I'd probably need to [keep the S_INVEN hook active all the time](https://github.com/Some-AV-Popo/box-opener/tree/inven-stuff) (rather than just temporarily), because who knows what dastardly combination of inputs users might try to break your modules.
 
 * Using some RNG boxes (the ones where a window pops up) from the shortcut bar still triggers `S_GACHA_START`, even if you don't actually have them, which is a problem since this and that other box-opener sends a `C_GACHA_TRY` immediately after it.
 
