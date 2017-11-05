@@ -18,6 +18,7 @@ module.exports = function OpenBox(dispatch) {
       hooks = [],
       loot = {},
       inventory,
+      invenLock,
       itemID,
       timer
 
@@ -42,19 +43,15 @@ module.exports = function OpenBox(dispatch) {
     reset()
     send('Please use a box/recipe.')
 
-    hook('S_INVEN', 5, event => {
-      if (!itemID || !gotLoot) return
+    hook('S_INVEN', 5, {order: -200}, event => {
       if (event.first) inventory = []
       else if (!inventory) return
-      for (let item of event.items) inventory.push(item)
+      for (let item of event.items)
+        if (item.slot >= 40) inventory.push(item.item)
+      if (!itemID || !gotLoot) return
       if (!event.more) {
         gotLoot = false
-        let hasMore = false
-        for (let item of inventory) {
-          if (item.slot < 40) continue
-          if (item.item === itemID) {hasMore = true; break}
-        }
-        if (hasMore) {
+        if (inventory.includes(itemID)) {
           clearTimeout(timer)
           if (!gacha) timer = setTimeout(useItem, delay, itemID)
         }
@@ -63,7 +60,11 @@ module.exports = function OpenBox(dispatch) {
       }
     })
 
-    hook('C_USE_ITEM', 1, event => itemID = event.item)
+    hook('C_USE_ITEM', 1, event => {
+      if (!itemID) send('Opening/cooking in progress ...')
+      itemID = event.item
+      if (!invenLock) invenLock = dispatch.hook('C_SHOW_INVEN', 1, () => false)
+    })
 
     hook('C_GACHA_TRY', 1, () => false)
 
@@ -100,6 +101,8 @@ module.exports = function OpenBox(dispatch) {
     itemID = null
     gacha = false
     gotLoot = false
+    if (invenLock) dispatch.unhook(invenLock)
+    invenLock = null
   }
 
   function pause() {
@@ -110,7 +113,7 @@ module.exports = function OpenBox(dispatch) {
   function stop() {
     reset()
     unload()
-    send('Stopped.')
+    send('Stopped. See system messages for loot totals.')
     // Boxes over time is a dumb stat, so let's do something just as dumb: loot totals
     for(let item in loot) lootMsg(item, loot[item])
     loot = {}
