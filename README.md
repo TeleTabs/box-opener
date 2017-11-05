@@ -21,3 +21,5 @@ Uses Pinkie Pie's [command](https://github.com/pinkipi/command) module. Just get
 * Writing an entire [class file](https://github.com/Some-AV-Popo/box-opener/commit/cce6821ac1d04fd7544228fdf32bfbe03d909a1e) just to keep track of silly stats like number boxes opened, time elapsed, and total looted obtained seemed like overkill and is apparently the mark of a terrible programmer, so stuffing everything into one index.js seems to be the way to go.
 
 * If you're wondering why all this unrelated stuff is here, I just wanted to give you something to read, because some people need practice in that area.
+
+* Contact Gus for support.
