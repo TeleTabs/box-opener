@@ -16,9 +16,9 @@ Uses Pinkie Pie's [command](https://github.com/pinkipi/command) module. Just get
 
 * Using some RNG boxes (where you pick from 4 slots) from the shortcut bar still triggers S_GACHA_START, even if you don't actually have them, which is a problem since this and that other box-opener sends a C_GACHA_TRY immediately after it.
 
-* Could probably enforce a small delay to check inventory before sending C_GACHA_TRY ... no, just don't use shit you don't have.
-
 * If you already have your inventory open and try to use a 4-slot RNG box you don't have (why are you still doing so?), it won't trigger S_INVEN at all, so good shit.
+
+* Could just save a copy of the inventory items and check before sending a C_USE_ITEM ... or you could just not use shit you don't have.
 
 * The setTimeout does accept a 0 ms arg, so a 'useDelay' flag seems kinda pointless, unless you're doing something strange like using more setTimeouts or calls to openBox than you actually need like some other box-opener.
 
