@@ -43,7 +43,7 @@ module.exports = function OpenBox(dispatch) {
     if (event.first) inventory = []
     else if (!inventory) return
     for (let item of event.items)
-    if (item.slot >= 40) inventory.push(item.item)
+      if (item.slot >= 40) inventory.push(item.item)
     if (!itemID || !gotLoot) return
     if (!event.more) {
       gotLoot = false
